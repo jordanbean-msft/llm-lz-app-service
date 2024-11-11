@@ -18,22 +18,12 @@ variable "tags" {
   type        = map(string)
 }
 
-variable "subnet_id" {
-  description = "The subnet ID to associate to the storage account"
-  type        = string
-}
-
-variable "account_tier" {
-  description = "The Tier to use for this storage account"
-  type        = string
-}
-
-variable "account_replication_type" {
-  description = "The Replication type to use for this storage account"
-  type        = string
-}
-
 variable "managed_identity_principal_id" {
-  description = "The principal id of the managed identity"
+  description = "The User Assigned Managed Identity to assign to the container registry"
+  type        = string
+}
+
+variable "subnet_id" {
+  description = "The subnet ID to associate to the container registry"
   type        = string
 }

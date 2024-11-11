@@ -31,7 +31,9 @@ variable "network" {
 
 variable "openai" {
   type = object({
-    sku_name = string
+    sku_name              = string,
+    chat_model_name       = string,
+    embeddings_model_name = string,
     model_deployments = list(object({
       model = object({
         format  = string
@@ -62,18 +64,28 @@ variable "ai_search" {
 
 variable "function_app" {
   type = object({
-    sku_name = string
+    sku_name               = string
+    zone_balancing_enabled = bool
   })
 }
 
 variable "app_service" {
   type = object({
-    sku_name = string
+    sku_name               = string
+    zone_balancing_enabled = bool
   })
 }
 
 variable "document_intelligence" {
   type = object({
     sku_name = string
+  })
+}
+
+variable "cosmos_db" {
+  type = object({
+    document_time_to_live = number
+    max_throughput        = number
+    zone_redundant        = bool
   })
 }

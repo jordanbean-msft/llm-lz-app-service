@@ -4,9 +4,11 @@ locals {
   resource_token = substr(replace(lower(local.sha), "[^A-Za-z0-9_]", ""), 0, 13)
   #app_subnet_nsg_name              = "nsg-${var.network.apim_subnet_name}-subnet"
   #private_endpoint_subnet_nsg_name = "nsg-${var.network.private_endpoint_subnet_name}-subnet"
-  azure_openai_secret_name             = "azure-openai-key"
-  azure_cognitive_services_secret_name = "azure-cognitive-services-key"
-  azure_search_service_secret_name     = "azure-search-service-apikey"
+  azure_openai_secret_name                               = "azure-openai-key"
+  azure_cognitive_services_secret_name                   = "azure-cognitive-services-key"
+  azure_search_service_secret_name                       = "azure-search-service-key"
+  document_storage_account_connection_string_secret_name = "document-storage-account-connection-string"
+  cosmosdb_account_key_secret_name                       = "cosmosdb-account-key"
 }
 
 # ------------------------------------------------------------------------------------------------------
@@ -84,6 +86,14 @@ module "key_vault" {
     {
       name  = local.azure_search_service_secret_name
       value = module.search_service.azure_search_service_apikey
+    },
+    {
+      name  = local.document_storage_account_connection_string_secret_name
+      value = module.document_storage_account.storage_account_connection_string
+    },
+    {
+      name  = local.cosmosdb_account_key_secret_name
+      value = module.cosmosdb.cosmosdb_account_key
     }
   ]
   subnet_id = module.virtual_network.private_endpoint_subnet_id
@@ -103,6 +113,8 @@ module "openai" {
   log_analytics_workspace_id       = module.log_analytics.log_analytics_workspace_id
   openai_model_deployments         = var.openai.model_deployments
   sku_name                         = var.openai.sku_name
+  chat_model_name                  = var.openai.chat_model_name
+  embeddings_model_name            = var.openai.embeddings_model_name
 }
 
 # ------------------------------------------------------------------------------------------------------
@@ -183,6 +195,16 @@ module "app_service" {
   sku_name                               = var.app_service.sku_name
   application_insights_connection_string = module.application_insights.application_insights_connection_string
   application_insights_key               = module.application_insights.application_insights_instrumentation_key
+  zone_balancing_enabled                 = var.app_service.zone_balancing_enabled
+  app_settings = {
+    "AZURE_OPENAI_ENDPOINT"        = module.openai.azure_cognitive_services_endpoint
+    "AZURE_OPENAI_KEY"             = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_openai_secret_name})"
+    "AZURE_DOC_INTEL_ENDPOINT"     = module.document_intelligence.azure_cognitive_services_endpoint
+    "AZURE_COGNITIVE_SERVICES_KEY" = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_cognitive_services_secret_name})"
+    "AZURE_SEARCH_ENDPOINT"        = module.search_service.azure_search_service_endpoint
+    "AZURE_SEARCH_SERVICE_KEY"     = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_search_service_secret_name})"
+  }
+  log_analytics_workspace_id = module.log_analytics.log_analytics_workspace_id
 }
 
 # ------------------------------------------------------------------------------------------------------
@@ -202,4 +224,63 @@ module "function_app" {
   storage_account_name                   = module.function_app_storage_account.storage_account_name
   application_insights_connection_string = module.application_insights.application_insights_connection_string
   application_insights_key               = module.application_insights.application_insights_instrumentation_key
+  zone_balancing_enabled                 = var.function_app.zone_balancing_enabled
+  app_settings = {
+    "AOAI_KEY"                   = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_openai_secret_name})"
+    "AOAI_ENDPOINT"              = module.openai.azure_cognitive_services_endpoint
+    "AOAI_EMBEDDINGS_MODEL"      = module.openai.embeddings_model_name
+    "AOAI_EMBEDDINGS_DIMENSIONS" = 1536
+    "AOAI_GPT_VISION_MODEL"      = module.openai.chat_model_name
+    "DOC_INTEL_ENDPOINT"         = module.document_intelligence.azure_cognitive_services_endpoint
+    "DOC_INTEL_KEY"              = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_cognitive_services_secret_name})"
+    "SEARCH_ENDPOINT"            = module.search_service.azure_search_service_endpoint
+    "SEARCH_KEY"                 = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_search_service_secret_name})"
+    "SEARCH_SERVICE_NAME"        = module.search_service.azure_search_service_name,
+    "STORAGE_CONN_STR"           = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.document_storage_account_connection_string_secret_name})"
+    "COSMOS_ENDPOINT"            = module.cosmosdb.cosmosdb_account_endpoint
+    "COSMOS_KEY"                 = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.cosmosdb_account_key_secret_name})"
+    "COSMOS_DATABASE"            = module.cosmosdb.cosmosdb_sql_database_name
+    "COSMOS_CONTAINER"           = module.cosmosdb.ingestion_cosmosdb_sql_container_name
+    "COSMOS_PROFILE_CONTAINER"   = module.cosmosdb.ingestion_profile_cosmosdb_sql_container_name,
+    "WEBSITE_CONTENTOVERVNET"    = 1
+  }
+  log_analytics_workspace_id = module.log_analytics.log_analytics_workspace_id
+}
+
+resource "azurerm_storage_container" "content_container" {
+  name                  = "content"
+  storage_account_name  = module.document_storage_account.storage_account_name
+  container_access_type = "private"
+}
+
+# ------------------------------------------------------------------------------------------------------
+# Deploy Container Registry
+# ------------------------------------------------------------------------------------------------------
+
+module "container_registry" {
+  source                        = "./modules/container_registry"
+  location                      = var.location
+  resource_group_name           = var.resource_group_name
+  tags                          = local.tags
+  resource_token                = local.resource_token
+  subnet_id                     = module.virtual_network.private_endpoint_subnet_id
+  managed_identity_principal_id = module.managed_identity.user_assigned_identity_principal_id
+}
+
+# ------------------------------------------------------------------------------------------------------
+# Deploy CosmosDB
+# ------------------------------------------------------------------------------------------------------
+module "cosmosdb" {
+  source                              = "./modules/cosmosdb"
+  location                            = var.location
+  resource_group_name                 = var.resource_group_name
+  resource_token                      = local.resource_token
+  tags                                = local.tags
+  subnet_id                           = module.virtual_network.private_endpoint_subnet_id
+  user_assigned_identity_principal_id = module.managed_identity.user_assigned_identity_principal_id
+  subscription_id                     = data.azurerm_client_config.current.subscription_id
+  principal_id                        = var.principal_id
+  document_time_to_live               = var.cosmos_db.document_time_to_live
+  max_throughput                      = var.cosmos_db.max_throughput
+  zone_redundant                      = var.cosmos_db.zone_redundant
 }

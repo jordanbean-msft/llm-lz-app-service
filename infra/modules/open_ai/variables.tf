@@ -53,3 +53,13 @@ variable "sku_name" {
   description = "The SKU name of the OpenAI service"
   type        = string
 }
+
+variable "chat_model_name" {
+  description = "The name of the chat model"
+  type        = string
+}
+
+variable "embeddings_model_name" {
+  description = "The name of the embeddings model"
+  type        = string
+}

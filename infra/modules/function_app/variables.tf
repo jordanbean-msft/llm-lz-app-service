@@ -52,3 +52,18 @@ variable "application_insights_connection_string" {
   description = "The connection string for the Application Insights instance"
   type        = string
 }
+
+variable "app_settings" {
+  description = "A map of app settings to configure the function app"
+  type        = map(string)
+}
+
+variable "zone_balancing_enabled" {
+  description = "Whether to enable zone balancing for the function app"
+  type        = bool
+}
+
+variable "log_analytics_workspace_id" {
+  description = "The resource id of the Log Analytics workspace to use for the function app"
+  type        = string
+}
