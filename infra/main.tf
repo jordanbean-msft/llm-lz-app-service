@@ -4,13 +4,13 @@ locals {
   resource_token = substr(replace(lower(local.sha), "[^A-Za-z0-9_]", ""), 0, 13)
   #app_subnet_nsg_name              = "nsg-${var.network.apim_subnet_name}-subnet"
   #private_endpoint_subnet_nsg_name = "nsg-${var.network.private_endpoint_subnet_name}-subnet"
-  azure_openai_secret_name                               = "azure-openai-key"
-  azure_cognitive_services_secret_name                   = "azure-cognitive-services-key"
-  azure_search_service_secret_name                       = "azure-search-service-key"
-  document_storage_account_connection_string_secret_name = "document-storage-account-connection-string"
+  azure_openai_secret_name                                   = "azure-openai-key"
+  azure_cognitive_services_secret_name                       = "azure-cognitive-services-key"
+  azure_search_service_secret_name                           = "azure-search-service-key"
+  document_storage_account_connection_string_secret_name     = "document-storage-account-connection-string"
   function_app_storage_account_connection_string_secret_name = "function-app-storage-account-connection-string"
-  cosmosdb_account_key_secret_name                       = "cosmosdb-account-key"
-  function_app_resource_token = "func-${local.resource_token}"
+  cosmosdb_account_key_secret_name                           = "cosmosdb-account-key"
+  function_app_resource_token                                = "func-${local.resource_token}"
 }
 
 # ------------------------------------------------------------------------------------------------------
@@ -98,7 +98,7 @@ module "key_vault" {
       value = module.cosmosdb.cosmosdb_account_key
     },
     {
-      name = local.function_app_storage_account_connection_string_secret_name
+      name  = local.function_app_storage_account_connection_string_secret_name
       value = module.function_app_storage_account.storage_account_connection_string
     }
   ]
@@ -203,13 +203,13 @@ module "app_service" {
   application_insights_key               = module.application_insights.application_insights_instrumentation_key
   zone_balancing_enabled                 = var.app_service.zone_balancing_enabled
   app_settings = {
-    "AZURE_OPENAI_ENDPOINT"        = module.openai.azure_cognitive_services_endpoint
-    "AZURE_OPENAI_KEY"             = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_openai_secret_name})"
-    "AZURE_DOC_INTEL_ENDPOINT"     = module.document_intelligence.azure_cognitive_services_endpoint
-    "AZURE_COGNITIVE_SERVICES_KEY" = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_cognitive_services_secret_name})"
-    "AZURE_SEARCH_ENDPOINT"        = module.search_service.azure_search_service_endpoint
-    "AZURE_SEARCH_SERVICE_KEY"     = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_search_service_secret_name})"
-    "APPINSIGHTS_INSTRUMENTATIONKEY" = module.application_insights.application_insights_instrumentation_key
+    "AZURE_OPENAI_ENDPOINT"                 = module.openai.azure_cognitive_services_endpoint
+    "AZURE_OPENAI_KEY"                      = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_openai_secret_name})"
+    "AZURE_DOC_INTEL_ENDPOINT"              = module.document_intelligence.azure_cognitive_services_endpoint
+    "AZURE_COGNITIVE_SERVICES_KEY"          = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_cognitive_services_secret_name})"
+    "AZURE_SEARCH_ENDPOINT"                 = module.search_service.azure_search_service_endpoint
+    "AZURE_SEARCH_SERVICE_KEY"              = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_search_service_secret_name})"
+    "APPINSIGHTS_INSTRUMENTATIONKEY"        = module.application_insights.application_insights_instrumentation_key
     "APPLICATIONINSIGHTS_CONNECTION_STRING" = module.application_insights.application_insights_connection_string
   }
   log_analytics_workspace_id = module.log_analytics.log_analytics_workspace_id
@@ -234,35 +234,35 @@ module "function_app" {
   application_insights_key               = module.application_insights.application_insights_instrumentation_key
   zone_balancing_enabled                 = var.function_app.zone_balancing_enabled
   app_settings = {
-    "AOAI_KEY"                   = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_openai_secret_name})"
-    "AOAI_ENDPOINT"              = module.openai.azure_cognitive_services_endpoint
-    "AOAI_EMBEDDINGS_MODEL"      = module.openai.embeddings_model_name
-    "AOAI_EMBEDDINGS_DIMENSIONS" = 1536
-    "AOAI_GPT_VISION_MODEL"      = module.openai.chat_model_name
-    "DOC_INTEL_ENDPOINT"         = module.document_intelligence.azure_cognitive_services_endpoint
-    "DOC_INTEL_KEY"              = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_cognitive_services_secret_name})"
-    "SEARCH_ENDPOINT"            = module.search_service.azure_search_service_endpoint
-    "SEARCH_KEY"                 = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_search_service_secret_name})"
-    "SEARCH_SERVICE_NAME"        = module.search_service.azure_search_service_name,
-    "STORAGE_CONN_STR"           = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.document_storage_account_connection_string_secret_name})"
-    "COSMOS_ENDPOINT"            = module.cosmosdb.cosmosdb_account_endpoint
-    "COSMOS_KEY"                 = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.cosmosdb_account_key_secret_name})"
-    "COSMOS_DATABASE"            = module.cosmosdb.cosmosdb_sql_database_name
-    "COSMOS_CONTAINER"           = module.cosmosdb.ingestion_cosmosdb_sql_container_name
-    "COSMOS_PROFILE_CONTAINER"   = module.cosmosdb.ingestion_profile_cosmosdb_sql_container_name,
-    "WEBSITE_CONTENTOVERVNET"    = 1
-    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING": "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.function_app_storage_account_connection_string_secret_name})"
-    "WEBSITE_CONTENTSHARE" = azurerm_storage_container.content_container.name
-    "APPINSIGHTS_INSTRUMENTATIONKEY" = module.application_insights.application_insights_instrumentation_key
-    "APPLICATIONINSIGHTS_CONNECTION_STRING" = module.application_insights.application_insights_connection_string
+    "AOAI_KEY"                                 = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_openai_secret_name})"
+    "AOAI_ENDPOINT"                            = module.openai.azure_cognitive_services_endpoint
+    "AOAI_EMBEDDINGS_MODEL"                    = module.openai.embeddings_model_name
+    "AOAI_EMBEDDINGS_DIMENSIONS"               = 1536
+    "AOAI_GPT_VISION_MODEL"                    = module.openai.chat_model_name
+    "DOC_INTEL_ENDPOINT"                       = module.document_intelligence.azure_cognitive_services_endpoint
+    "DOC_INTEL_KEY"                            = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_cognitive_services_secret_name})"
+    "SEARCH_ENDPOINT"                          = module.search_service.azure_search_service_endpoint
+    "SEARCH_KEY"                               = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_search_service_secret_name})"
+    "SEARCH_SERVICE_NAME"                      = module.search_service.azure_search_service_name,
+    "STORAGE_CONN_STR"                         = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.document_storage_account_connection_string_secret_name})"
+    "COSMOS_ENDPOINT"                          = module.cosmosdb.cosmosdb_account_endpoint
+    "COSMOS_KEY"                               = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.cosmosdb_account_key_secret_name})"
+    "COSMOS_DATABASE"                          = module.cosmosdb.cosmosdb_sql_database_name
+    "COSMOS_CONTAINER"                         = module.cosmosdb.ingestion_cosmosdb_sql_container_name
+    "COSMOS_PROFILE_CONTAINER"                 = module.cosmosdb.ingestion_profile_cosmosdb_sql_container_name,
+    "WEBSITE_CONTENTOVERVNET"                  = 1
+    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING" = module.function_app_storage_account.storage_account_connection_string #this is a workaround for the issue with the function app not being able to access the storage account
+    "WEBSITE_CONTENTSHARE"                     = azurerm_storage_share.function_app_file_share.name
+    "APPINSIGHTS_INSTRUMENTATIONKEY"           = module.application_insights.application_insights_instrumentation_key
+    "APPLICATIONINSIGHTS_CONNECTION_STRING"    = module.application_insights.application_insights_connection_string
   }
   log_analytics_workspace_id = module.log_analytics.log_analytics_workspace_id
 }
 
-resource "azurerm_storage_container" "function_app_container" {
-  name                  = local.function_app_resource_token
-  storage_account_name  = module.function_app_storage_account.storage_account_name
-  container_access_type = "private"
+resource "azurerm_storage_share" "function_app_file_share" {
+  name                 = "func-${local.resource_token}"
+  storage_account_name = module.function_app_storage_account.storage_account_name
+  quota                = 50
 }
 
 resource "azurerm_storage_container" "content_container" {
