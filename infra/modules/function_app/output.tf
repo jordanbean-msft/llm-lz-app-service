@@ -7,3 +7,8 @@ output "function_app_name" {
   description = "The name of the function app"
   value       = azurerm_linux_function_app.function_app.name
 }
+
+output "function_app_endpoint" {
+  description = "The endpoint of the function app"
+  value       = azurerm_linux_function_app.function_app.default_hostname
+}

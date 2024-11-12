@@ -8,7 +8,9 @@ locals {
   azure_cognitive_services_secret_name                   = "azure-cognitive-services-key"
   azure_search_service_secret_name                       = "azure-search-service-key"
   document_storage_account_connection_string_secret_name = "document-storage-account-connection-string"
+  function_app_storage_account_connection_string_secret_name = "function-app-storage-account-connection-string"
   cosmosdb_account_key_secret_name                       = "cosmosdb-account-key"
+  function_app_resource_token = "func-${local.resource_token}"
 }
 
 # ------------------------------------------------------------------------------------------------------
@@ -94,6 +96,10 @@ module "key_vault" {
     {
       name  = local.cosmosdb_account_key_secret_name
       value = module.cosmosdb.cosmosdb_account_key
+    },
+    {
+      name = local.function_app_storage_account_connection_string_secret_name
+      value = module.function_app_storage_account.storage_account_connection_string
     }
   ]
   subnet_id = module.virtual_network.private_endpoint_subnet_id
@@ -203,6 +209,8 @@ module "app_service" {
     "AZURE_COGNITIVE_SERVICES_KEY" = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_cognitive_services_secret_name})"
     "AZURE_SEARCH_ENDPOINT"        = module.search_service.azure_search_service_endpoint
     "AZURE_SEARCH_SERVICE_KEY"     = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_search_service_secret_name})"
+    "APPINSIGHTS_INSTRUMENTATIONKEY" = module.application_insights.application_insights_instrumentation_key
+    "APPLICATIONINSIGHTS_CONNECTION_STRING" = module.application_insights.application_insights_connection_string
   }
   log_analytics_workspace_id = module.log_analytics.log_analytics_workspace_id
 }
@@ -216,7 +224,7 @@ module "function_app" {
   location                               = var.location
   resource_group_name                    = var.resource_group_name
   tags                                   = local.tags
-  resource_token                         = "func-${local.resource_token}"
+  resource_token                         = local.function_app_resource_token
   managed_identity_id                    = module.managed_identity.user_assigned_identity_id
   subnet_id                              = module.virtual_network.function_app_subnet_id
   private_endpoint_subnet_id             = module.virtual_network.private_endpoint_subnet_id
@@ -243,8 +251,18 @@ module "function_app" {
     "COSMOS_CONTAINER"           = module.cosmosdb.ingestion_cosmosdb_sql_container_name
     "COSMOS_PROFILE_CONTAINER"   = module.cosmosdb.ingestion_profile_cosmosdb_sql_container_name,
     "WEBSITE_CONTENTOVERVNET"    = 1
+    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING": "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.function_app_storage_account_connection_string_secret_name})"
+    "WEBSITE_CONTENTSHARE" = azurerm_storage_container.content_container.name
+    "APPINSIGHTS_INSTRUMENTATIONKEY" = module.application_insights.application_insights_instrumentation_key
+    "APPLICATIONINSIGHTS_CONNECTION_STRING" = module.application_insights.application_insights_connection_string
   }
   log_analytics_workspace_id = module.log_analytics.log_analytics_workspace_id
+}
+
+resource "azurerm_storage_container" "function_app_container" {
+  name                  = local.function_app_resource_token
+  storage_account_name  = module.function_app_storage_account.storage_account_name
+  container_access_type = "private"
 }
 
 resource "azurerm_storage_container" "content_container" {
