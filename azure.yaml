@@ -1,2 +1,10 @@
-name: template-repository
+name: llm-lz-app-service
+infra:
+  provider: terraform
 services:
+state:
+  remote:
+    backend: AzureBlobStorage
+    config:
+      accountName: saterraformeus2rjb
+      containerName: llm-lz-app-service
