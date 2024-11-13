@@ -24,8 +24,11 @@ variable "network" {
     virtual_network_resource_group_name = string
     virtual_network_name                = string
     private_endpoint_subnet_name        = string
+    private_endpoint_nsg_name           = string
     app_service_subnet_name             = string
+    app_service_nsg_name                = string
     function_app_subnet_name            = string
+    function_app_nsg_name               = string
   })
 }
 
