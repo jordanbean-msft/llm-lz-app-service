@@ -32,7 +32,8 @@ variable "network_security_rules" {
     access                     = string
     protocol                   = string
     source_port_range          = string
-    destination_port_ranges    = list(number)
+    destination_port_range     = optional(string)
+    destination_port_ranges    = optional(list(string))
     source_address_prefix      = string
     destination_address_prefix = string
   }))
@@ -40,5 +41,20 @@ variable "network_security_rules" {
 
 variable "subnet_id" {
   description = "The resource id of the subnet to deploy the network security group into"
+  type        = string
+}
+
+variable "network_security_group_name" {
+  description = "The name of the network security group"
+  type        = string
+}
+
+variable "subscription_id" {
+  description = "The subscription id"
+  type        = string
+}
+
+variable "virtual_network_name" {
+  description = "The name of the virtual network"
   type        = string
 }

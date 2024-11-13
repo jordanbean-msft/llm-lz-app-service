@@ -27,6 +27,8 @@ module "virtual_network" {
   private_endpoint_subnet_name = var.network.private_endpoint_subnet_name
   function_app_subnet_name     = var.network.function_app_subnet_name
   app_service_subnet_name      = var.network.app_service_subnet_name
+  subscription_id              = data.azurerm_client_config.current.subscription_id
+  subnets                      = []
 }
 
 # ------------------------------------------------------------------------------------------------------
