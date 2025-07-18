@@ -1,3 +1,7 @@
+output "azure_search_service_id" {
+  value = azurerm_search_service.search.id
+}
+
 output "azure_search_service_name" {
   value = azurerm_search_service.search.name
 }
@@ -10,5 +14,3 @@ output "azure_search_service_endpoint" {
 output "azure_search_service_apikey" {
   value = azurerm_search_service.search.primary_key
 }
-
-

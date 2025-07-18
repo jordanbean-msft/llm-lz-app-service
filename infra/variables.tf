@@ -21,18 +21,18 @@ variable "environment_name" {
 
 variable "network" {
   type = object({
-    virtual_network_resource_group_name = string
-    virtual_network_name                = string
-    private_endpoint_subnet_name        = string
-    private_endpoint_nsg_name           = string
-    app_service_subnet_name             = string
-    app_service_nsg_name                = string
-    function_app_subnet_name            = string
-    function_app_nsg_name               = string
+    virtual_network_resource_group_name       = string
+    virtual_network_name                      = string
+    private_endpoint_subnet_name              = string
+    private_endpoint_subnet_nsg_name          = string
+    app_service_subnet_name                   = string
+    app_service_subnet_nsg_name               = string
+    ai_foundry_agents_service_subnet_name     = string
+    ai_foundry_agents_service_subnet_nsg_name = string
   })
 }
 
-variable "openai" {
+variable "ai_foundry" {
   type = object({
     sku_name              = string,
     chat_model_name       = string,
@@ -65,13 +65,6 @@ variable "ai_search" {
   })
 }
 
-variable "function_app" {
-  type = object({
-    sku_name               = string
-    zone_balancing_enabled = bool
-  })
-}
-
 variable "app_service" {
   type = object({
     sku_name               = string
@@ -85,7 +78,7 @@ variable "document_intelligence" {
   })
 }
 
-variable "cosmos_db" {
+variable "cosmosdb" {
   type = object({
     document_time_to_live = number
     max_throughput        = number

@@ -33,8 +33,8 @@ variable "private_endpoint_subnet_name" {
   type        = string
 }
 
-variable "function_app_subnet_name" {
-  description = "Specifies resource name of the subnet hosting the function app."
+variable "ai_foundry_agents_subnet_name" {
+  description = "Specifies resource name of the subnet hosting the AI Foundry agents service"
   type        = string
 }
 
@@ -63,8 +63,3 @@ variable "subscription_id" {
   description = "The subscription ID to deploy resources into"
   type        = string
 }
-
-# variable "managed_identity_principal_id" {
-#   description = "The principal id of the managed identity"
-#   type        = string
-# }

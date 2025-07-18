@@ -18,17 +18,17 @@ locals {
 # ------------------------------------------------------------------------------------------------------
 
 module "virtual_network" {
-  source                       = "./modules/virtual_network"
-  location                     = var.location
-  resource_group_name          = var.network.virtual_network_resource_group_name
-  tags                         = local.tags
-  resource_token               = local.resource_token
-  virtual_network_name         = var.network.virtual_network_name
-  private_endpoint_subnet_name = var.network.private_endpoint_subnet_name
-  function_app_subnet_name     = var.network.function_app_subnet_name
-  app_service_subnet_name      = var.network.app_service_subnet_name
-  subscription_id              = data.azurerm_client_config.current.subscription_id
-  subnets                      = []
+  source                        = "./modules/virtual_network"
+  location                      = var.location
+  resource_group_name           = var.network.virtual_network_resource_group_name
+  tags                          = local.tags
+  resource_token                = local.resource_token
+  virtual_network_name          = var.network.virtual_network_name
+  private_endpoint_subnet_name  = var.network.private_endpoint_subnet_name
+  app_service_subnet_name       = var.network.app_service_subnet_name
+  ai_foundry_agents_subnet_name = var.network.ai_foundry_agents_service_subnet_name
+  subscription_id               = data.azurerm_client_config.current.subscription_id
+  subnets                       = []
 }
 
 # ------------------------------------------------------------------------------------------------------
@@ -81,7 +81,7 @@ module "key_vault" {
   secrets = [
     {
       name  = local.azure_openai_secret_name
-      value = module.openai.azure_cognitive_services_key
+      value = module.ai_foundry.azure_cognitive_services_key
     },
     {
       name  = local.azure_cognitive_services_secret_name
@@ -98,31 +98,38 @@ module "key_vault" {
     {
       name  = local.cosmosdb_account_key_secret_name
       value = module.cosmosdb.cosmosdb_account_key
-    },
-    {
-      name  = local.function_app_storage_account_connection_string_secret_name
-      value = module.function_app_storage_account.storage_account_connection_string
     }
   ]
   subnet_id = module.virtual_network.private_endpoint_subnet_id
 }
 
 # ------------------------------------------------------------------------------------------------------
-# Deploy OpenAI
+# Deploy AI Foundry
 # ------------------------------------------------------------------------------------------------------
-module "openai" {
-  source                           = "./modules/open_ai"
-  location                         = var.location
-  resource_group_name              = var.resource_group_name
-  resource_token                   = local.resource_token
-  tags                             = local.tags
-  subnet_id                        = module.virtual_network.private_endpoint_subnet_id
-  user_assigned_identity_object_id = module.managed_identity.user_assigned_identity_object_id
-  log_analytics_workspace_id       = module.log_analytics.log_analytics_workspace_id
-  openai_model_deployments         = var.openai.model_deployments
-  sku_name                         = var.openai.sku_name
-  chat_model_name                  = var.openai.chat_model_name
-  embeddings_model_name            = var.openai.embeddings_model_name
+module "ai_foundry" {
+  source                                      = "./modules/ai_foundry"
+  location                                    = var.location
+  resource_group_name                         = var.resource_group_name
+  resource_token                              = local.resource_token
+  tags                                        = local.tags
+  subnet_id                                   = module.virtual_network.private_endpoint_subnet_id
+  user_assigned_identity_object_id            = module.managed_identity.user_assigned_identity_object_id
+  user_assigned_managed_identity_id           = module.managed_identity.user_assigned_identity_id
+  user_assigned_managed_identity_principal_id = module.managed_identity.user_assigned_identity_principal_id
+  log_analytics_workspace_id                  = module.log_analytics.log_analytics_workspace_id
+  openai_model_deployments                    = var.ai_foundry.model_deployments
+  sku_name                                    = var.ai_foundry.sku_name
+  chat_model_name                             = var.ai_foundry.chat_model_name
+  embeddings_model_name                       = var.ai_foundry.embeddings_model_name
+  storage_account_id                          = module.document_storage_account.storage_account_id
+  storage_account_name                        = module.document_storage_account.storage_account_name
+  storage_account_primary_blob_endpoint       = module.document_storage_account.storage_account_primary_blob_endpoint
+  cosmosdb_account_id                         = module.cosmosdb.cosmosdb_account_id
+  cosmosdb_account_name                       = module.cosmosdb.cosmosdb_account_name
+  cosmosdb_account_endpoint                   = module.cosmosdb.cosmosdb_account_endpoint
+  ai_search_service_id                        = module.search_service.azure_search_service_id
+  ai_search_service_name                      = module.search_service.azure_search_service_name
+  ai_foundry_agent_service_subnet_id          = module.virtual_network.ai_foundry_agents_service_subnet_id
 }
 
 # ------------------------------------------------------------------------------------------------------
@@ -135,22 +142,6 @@ module "document_storage_account" {
   resource_group_name           = var.resource_group_name
   tags                          = local.tags
   resource_token                = "doc-${local.resource_token}"
-  subnet_id                     = module.virtual_network.private_endpoint_subnet_id
-  account_tier                  = var.storage_account.tier
-  account_replication_type      = var.storage_account.replication_type
-  managed_identity_principal_id = module.managed_identity.user_assigned_identity_principal_id
-}
-
-# ------------------------------------------------------------------------------------------------------
-# Deploy Function App Storage Account
-# ------------------------------------------------------------------------------------------------------
-
-module "function_app_storage_account" {
-  source                        = "./modules/storage_account"
-  location                      = var.location
-  resource_group_name           = var.resource_group_name
-  tags                          = local.tags
-  resource_token                = "func-${local.resource_token}"
   subnet_id                     = module.virtual_network.private_endpoint_subnet_id
   account_tier                  = var.storage_account.tier
   account_replication_type      = var.storage_account.replication_type
@@ -205,7 +196,7 @@ module "app_service" {
   application_insights_key               = module.application_insights.application_insights_instrumentation_key
   zone_balancing_enabled                 = var.app_service.zone_balancing_enabled
   app_settings = {
-    "AZURE_OPENAI_ENDPOINT"                 = module.openai.azure_cognitive_services_endpoint
+    "AZURE_OPENAI_ENDPOINT"                 = module.ai_foundry.azure_cognitive_services_endpoint
     "AZURE_OPENAI_KEY"                      = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_openai_secret_name})"
     "AZURE_DOC_INTEL_ENDPOINT"              = module.document_intelligence.azure_cognitive_services_endpoint
     "AZURE_COGNITIVE_SERVICES_KEY"          = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_cognitive_services_secret_name})"
@@ -215,62 +206,6 @@ module "app_service" {
     "APPLICATIONINSIGHTS_CONNECTION_STRING" = module.application_insights.application_insights_connection_string
   }
   log_analytics_workspace_id = module.log_analytics.log_analytics_workspace_id
-}
-
-# ------------------------------------------------------------------------------------------------------
-# Deploy Function App
-# ------------------------------------------------------------------------------------------------------
-
-module "function_app" {
-  source                                 = "./modules/function_app"
-  location                               = var.location
-  resource_group_name                    = var.resource_group_name
-  tags                                   = local.tags
-  resource_token                         = local.function_app_resource_token
-  managed_identity_id                    = module.managed_identity.user_assigned_identity_id
-  subnet_id                              = module.virtual_network.function_app_subnet_id
-  private_endpoint_subnet_id             = module.virtual_network.private_endpoint_subnet_id
-  sku_name                               = var.function_app.sku_name
-  storage_account_name                   = module.function_app_storage_account.storage_account_name
-  application_insights_connection_string = module.application_insights.application_insights_connection_string
-  application_insights_key               = module.application_insights.application_insights_instrumentation_key
-  zone_balancing_enabled                 = var.function_app.zone_balancing_enabled
-  app_settings = {
-    "AOAI_KEY"                                 = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_openai_secret_name})"
-    "AOAI_ENDPOINT"                            = module.openai.azure_cognitive_services_endpoint
-    "AOAI_EMBEDDINGS_MODEL"                    = module.openai.embeddings_model_name
-    "AOAI_EMBEDDINGS_DIMENSIONS"               = 1536
-    "AOAI_GPT_VISION_MODEL"                    = module.openai.chat_model_name
-    "DOC_INTEL_ENDPOINT"                       = module.document_intelligence.azure_cognitive_services_endpoint
-    "DOC_INTEL_KEY"                            = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_cognitive_services_secret_name})"
-    "SEARCH_ENDPOINT"                          = module.search_service.azure_search_service_endpoint
-    "SEARCH_KEY"                               = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.azure_search_service_secret_name})"
-    "SEARCH_SERVICE_NAME"                      = module.search_service.azure_search_service_name,
-    "STORAGE_CONN_STR"                         = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.document_storage_account_connection_string_secret_name})"
-    "COSMOS_ENDPOINT"                          = module.cosmosdb.cosmosdb_account_endpoint
-    "COSMOS_KEY"                               = "@Microsoft.KeyVault(VaultName=${module.key_vault.key_vault_name};SecretName=${local.cosmosdb_account_key_secret_name})"
-    "COSMOS_DATABASE"                          = module.cosmosdb.cosmosdb_sql_database_name
-    "COSMOS_CONTAINER"                         = module.cosmosdb.ingestion_cosmosdb_sql_container_name
-    "COSMOS_PROFILE_CONTAINER"                 = module.cosmosdb.ingestion_profile_cosmosdb_sql_container_name,
-    "WEBSITE_CONTENTOVERVNET"                  = 1
-    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING" = module.function_app_storage_account.storage_account_connection_string #this is a workaround for the issue with the function app not being able to access the storage account
-    "WEBSITE_CONTENTSHARE"                     = azurerm_storage_share.function_app_file_share.name
-    "APPINSIGHTS_INSTRUMENTATIONKEY"           = module.application_insights.application_insights_instrumentation_key
-    "APPLICATIONINSIGHTS_CONNECTION_STRING"    = module.application_insights.application_insights_connection_string
-  }
-  log_analytics_workspace_id = module.log_analytics.log_analytics_workspace_id
-}
-
-resource "azurerm_storage_share" "function_app_file_share" {
-  name                 = "func-${local.resource_token}"
-  storage_account_name = module.function_app_storage_account.storage_account_name
-  quota                = 50
-}
-
-resource "azurerm_storage_container" "content_container" {
-  name                  = "content"
-  storage_account_name  = module.document_storage_account.storage_account_name
-  container_access_type = "private"
 }
 
 # ------------------------------------------------------------------------------------------------------
@@ -291,7 +226,7 @@ module "container_registry" {
 # Deploy CosmosDB
 # ------------------------------------------------------------------------------------------------------
 module "cosmosdb" {
-  source                              = "./modules/cosmosdb"
+  source                              = "./modules/cosmos_db"
   location                            = var.location
   resource_group_name                 = var.resource_group_name
   resource_token                      = local.resource_token
@@ -300,7 +235,7 @@ module "cosmosdb" {
   user_assigned_identity_principal_id = module.managed_identity.user_assigned_identity_principal_id
   subscription_id                     = data.azurerm_client_config.current.subscription_id
   principal_id                        = var.principal_id
-  document_time_to_live               = var.cosmos_db.document_time_to_live
-  max_throughput                      = var.cosmos_db.max_throughput
-  zone_redundant                      = var.cosmos_db.zone_redundant
+  document_time_to_live               = var.cosmosdb.document_time_to_live
+  max_throughput                      = var.cosmosdb.max_throughput
+  zone_redundant                      = var.cosmosdb.zone_redundant
 }

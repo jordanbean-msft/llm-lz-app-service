@@ -28,6 +28,15 @@ variable "user_assigned_identity_object_id" {
   type        = string
 }
 
+variable "user_assigned_managed_identity_id" {
+  description = "The user assigned managed identity to use"
+  type        = string
+}
+
+variable "user_assigned_managed_identity_principal_id" {
+  type = string
+}
+
 variable "log_analytics_workspace_id" {
   description = "The id of the Log Analytics workspace to send logs to"
   type        = string
@@ -61,5 +70,45 @@ variable "chat_model_name" {
 
 variable "embeddings_model_name" {
   description = "The name of the embeddings model"
+  type        = string
+}
+
+variable "storage_account_id" {
+  description = "The id of the storage account to use for AI Foundry Agent Servce"
+  type        = string
+}
+
+variable "storage_account_name" {
+  type = string
+}
+
+variable "storage_account_primary_blob_endpoint" {
+  type = string
+}
+
+variable "cosmosdb_account_id" {
+  description = "The id of the Cosmos DB to use for the AI Foundry Agent Service"
+  type        = string
+}
+
+variable "cosmosdb_account_name" {
+  type = string
+}
+
+variable "cosmosdb_account_endpoint" {
+  type = string
+}
+
+variable "ai_search_service_id" {
+  description = "The id of the AI Search service to use for the AI Foundry Agent Service"
+  type        = string
+}
+
+variable "ai_search_service_name" {
+  type = string
+}
+
+variable "ai_foundry_agent_service_subnet_id" {
+  description = "The id of the AI Foundry Agent service subnet id"
   type        = string
 }

@@ -6,5 +6,5 @@ state:
   remote:
     backend: AzureBlobStorage
     config:
-      accountName: saterraformeus2rjb
+      accountName: steastus2yv4qkefibmvuq
       containerName: llm-lz-app-service

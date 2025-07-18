@@ -1,15 +1,3 @@
-terraform {
-  required_providers {
-    azurerm = {
-      version = "4.9.0"
-      source  = "hashicorp/azurerm"
-    }
-    azurecaf = {
-      source  = "aztfmod/azurecaf"
-      version = "1.2.28"
-    }
-  }
-}
 # ------------------------------------------------------------------------------------------------------
 # Deploy Storage Account
 # ------------------------------------------------------------------------------------------------------

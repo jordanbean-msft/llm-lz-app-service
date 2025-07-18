@@ -1,15 +1,3 @@
-terraform {
-  required_providers {
-    azurerm = {
-      version = "4.9.0"
-      source  = "hashicorp/azurerm"
-    }
-    azurecaf = {
-      source  = "aztfmod/azurecaf"
-      version = "1.2.28"
-    }
-  }
-}
 # ------------------------------------------------------------------------------------------------------
 # Deploy log analytics workspace
 # ------------------------------------------------------------------------------------------------------
@@ -42,65 +30,6 @@ resource "azurerm_cosmosdb_account" "cosmosdb_account" {
   offer_type = "Standard"
 }
 
-resource "azurerm_cosmosdb_sql_database" "cosmosdb_sql_database" {
-  name                = "ingestion-db"
-  resource_group_name = var.resource_group_name
-  account_name        = azurerm_cosmosdb_account.cosmosdb_account.name
-  autoscale_settings {
-    max_throughput = var.max_throughput
-  }
-}
-
-resource "azurerm_cosmosdb_sql_container" "ingestion_cosmosdb_sql_container" {
-  name                = "ingestion-container"
-  resource_group_name = var.resource_group_name
-  account_name        = azurerm_cosmosdb_account.cosmosdb_account.name
-  database_name       = azurerm_cosmosdb_sql_database.cosmosdb_sql_database.name
-  partition_key_paths = [
-    "/pk"
-  ]
-  partition_key_version = 1
-  conflict_resolution_policy {
-    mode                     = "LastWriterWins"
-    conflict_resolution_path = "/_ts"
-  }
-  indexing_policy {
-    indexing_mode = "consistent"
-    included_path {
-      path = "/*"
-    }
-    excluded_path {
-      path = "/\"_etag\"/?"
-    }
-  }
-  default_ttl = var.document_time_to_live
-}
-
-resource "azurerm_cosmosdb_sql_container" "ingestion_profile_cosmosdb_sql_container" {
-  name                = "ingestion-profile-container"
-  resource_group_name = var.resource_group_name
-  account_name        = azurerm_cosmosdb_account.cosmosdb_account.name
-  database_name       = azurerm_cosmosdb_sql_database.cosmosdb_sql_database.name
-  partition_key_paths = [
-    "/pk"
-  ]
-  partition_key_version = 1
-  conflict_resolution_policy {
-    mode                     = "LastWriterWins"
-    conflict_resolution_path = "/_ts"
-  }
-  indexing_policy {
-    indexing_mode = "consistent"
-    included_path {
-      path = "/*"
-    }
-    excluded_path {
-      path = "/\"_etag\"/?"
-    }
-  }
-  default_ttl = var.document_time_to_live
-}
-
 module "private_endpoint" {
   source                         = "../private_endpoint"
   name                           = azurerm_cosmosdb_account.cosmosdb_account.name
@@ -114,24 +43,24 @@ module "private_endpoint" {
   is_manual_connection           = false
 }
 
-data "azurerm_cosmosdb_sql_role_definition" "cosmosdb_built_in_data_contributor" {
+data "azurerm_cosmosdb_sql_role_definition" "cosmos_db_built_in_data_contributor" {
   resource_group_name = var.resource_group_name
   account_name        = azurerm_cosmosdb_account.cosmosdb_account.name
   role_definition_id  = "00000000-0000-0000-0000-000000000002" #https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-setup-rbac#built-in-role-definitions
 }
 
-resource "azurerm_cosmosdb_sql_role_assignment" "cosmosdb_built_in_data_contributor_role_assignment_to_user_assigned_managed_identity" {
+resource "azurerm_cosmosdb_sql_role_assignment" "cosmos_db_built_in_data_contributor_role_assignment_to_user_assigned_managed_identity" {
   resource_group_name = var.resource_group_name
   account_name        = azurerm_cosmosdb_account.cosmosdb_account.name
-  role_definition_id  = data.azurerm_cosmosdb_sql_role_definition.cosmosdb_built_in_data_contributor.id
+  role_definition_id  = data.azurerm_cosmosdb_sql_role_definition.cosmos_db_built_in_data_contributor.id
   principal_id        = var.user_assigned_identity_principal_id
   scope               = azurerm_cosmosdb_account.cosmosdb_account.id
 }
 
-resource "azurerm_cosmosdb_sql_role_assignment" "cosmosdb_built_in_data_contributor_role_assignment_to_principal_id" {
+resource "azurerm_cosmosdb_sql_role_assignment" "cosmos_db_built_in_data_contributor_role_assignment_to_principal_id" {
   resource_group_name = var.resource_group_name
   account_name        = azurerm_cosmosdb_account.cosmosdb_account.name
-  role_definition_id  = data.azurerm_cosmosdb_sql_role_definition.cosmosdb_built_in_data_contributor.id
+  role_definition_id  = data.azurerm_cosmosdb_sql_role_definition.cosmos_db_built_in_data_contributor.id
   principal_id        = var.principal_id
   scope               = azurerm_cosmosdb_account.cosmosdb_account.id
 }
