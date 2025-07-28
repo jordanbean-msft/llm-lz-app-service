@@ -1,5 +1,5 @@
 output "azure_cognitive_services_endpoint" {
-  value = azapi_resource.ai_foundry.output.endpoint
+  value = azapi_resource.ai_foundry.output.properties.endpoint
 }
 
 output "azure_cognitive_services_key" {

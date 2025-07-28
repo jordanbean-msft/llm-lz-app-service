@@ -79,26 +79,26 @@ module "key_vault" {
     module.managed_identity.user_assigned_identity_object_id
   ]
   secrets = [
-    {
-      name  = local.azure_openai_secret_name
-      value = module.ai_foundry.azure_cognitive_services_key
-    },
-    {
-      name  = local.azure_cognitive_services_secret_name
-      value = module.document_intelligence.azure_cognitive_services_key
-    },
-    {
-      name  = local.azure_search_service_secret_name
-      value = module.search_service.azure_search_service_apikey
-    },
-    {
-      name  = local.document_storage_account_connection_string_secret_name
-      value = module.document_storage_account.storage_account_connection_string
-    },
-    {
-      name  = local.cosmosdb_account_key_secret_name
-      value = module.cosmosdb.cosmosdb_account_key
-    }
+    # {
+    #   name  = local.azure_openai_secret_name
+    #   value = module.ai_foundry.azure_cognitive_services_key
+    # },
+    # {
+    #   name  = local.azure_cognitive_services_secret_name
+    #   value = module.document_intelligence.azure_cognitive_services_key
+    # },
+    # {
+    #   name  = local.azure_search_service_secret_name
+    #   value = module.search_service.azure_search_service_apikey
+    # },
+    # {
+    #   name  = local.document_storage_account_connection_string_secret_name
+    #   value = module.document_storage_account.storage_account_connection_string
+    # },
+    # {
+    #   name  = local.cosmosdb_account_key_secret_name
+    #   value = module.cosmosdb.cosmosdb_account_key
+    # }
   ]
   subnet_id = module.virtual_network.private_endpoint_subnet_id
 }
